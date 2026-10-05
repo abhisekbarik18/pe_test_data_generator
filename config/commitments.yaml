@@ -1,0 +1,105 @@
+module: commitments
+
+columns:
+  - name: commitment_id
+    type: sequence_id
+    prefix: CMT
+    width: 8
+    start: 1
+
+  - name: investor_name
+    type: name_pool
+    pool: company
+    pool_size: 25000
+    unique: true
+
+  - name: fund_name
+    type: name_pool
+    pool: company
+    pool_size: 25000
+
+  - name: deal_name
+    type: name_pool
+    pool: company
+    pool_size: 25000
+
+  - name: portfolio_company
+    type: name_pool
+    pool: company
+    pool_size: 25000
+
+  - name: commitment_amount
+    type: float_range
+    min: 100000
+    max: 250000000
+    decimals: 2
+
+  - name: commitment_currency
+    type: choice
+    values: [USD, EUR, GBP, JPY, SGD]
+    weights: [60, 15, 10, 10, 5]
+
+  - name: commitment_date
+    type: date_range
+    start: "2018-01-01"
+    end: "2026-10-06"
+
+  - name: expected_close_date
+    type: date_range
+    start: "2026-01-01"
+    end: "2030-12-31"
+
+  - name: status
+    type: choice
+    values: [Committed, Pending, Approved, Closed, Cancelled]
+    weights: [45, 20, 15, 15, 5]
+
+  - name: commitment_type
+    type: choice
+    values: [Primary, Secondary, Co-Investment, Mezzanine, Convert]
+    weights: [40, 20, 20, 10, 10]
+
+  - name: sector
+    type: choice
+    values: [Technology, Healthcare, Industrials, Financial Services, Consumer, Energy, Real Estate]
+    weights: [22, 18, 17, 12, 13, 10, 8]
+
+  - name: region
+    type: choice
+    values: [North America, Europe, Asia-Pacific, Middle East, Latin America]
+    weights: [40, 25, 20, 8, 7]
+
+  - name: legal_entity_name
+    type: name_pool
+    pool: company
+    pool_size: 20000
+
+  - name: relationship_manager
+    type: name_pool
+    pool: person
+    pool_size: 300
+
+  - name: contact_email
+    type: email_from
+    source_column: relationship_manager
+    unique: true
+
+  - name: bank_name
+    type: name_pool
+    pool: bank_name
+    pool_size: 2000
+
+  - name: account_number
+    type: pattern
+    pattern: "##########"
+    unique: true
+
+  - name: created_date
+    type: date_range
+    start: "2022-01-01"
+    end: "2026-10-06"
+
+  - name: updated_date
+    type: date_range
+    start: "2024-01-01"
+    end: "2026-10-06"

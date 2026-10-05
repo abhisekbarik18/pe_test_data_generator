@@ -1,0 +1,79 @@
+module: general_ledger
+
+columns:
+  - name: S.No
+    type: sequence_id
+    prefix: ""
+    width: 1
+    start: 1
+
+  - name: Reference Number
+    type: sequence_id
+    prefix: GL-
+    width: 10
+    start: 1
+
+  - name: Batch Number
+    type: pattern
+    pattern: BATCH-######
+
+  - name: Vendor
+    type: name_pool
+    pool: company
+    pool_size: 25000
+
+  - name: Affiliate
+    type: name_pool
+    pool: company
+    pool_size: 25000
+
+  - name: Deal Name
+    type: name_pool
+    pool: company
+    pool_size: 25000
+
+  - name: Position
+    type: choice
+    values: [Common Equity, Preferred Equity, Senior Debt, Mezzanine Debt, Fund Interest]
+    weights: [35, 15, 25, 15, 10]
+
+  - name: Bank Account
+    type: pattern
+    pattern: BA-############
+
+  - name: Investor Name
+    type: name_pool
+    pool: company
+    pool_size: 25000
+
+  - name: Amount
+    type: float_range
+    min: 1
+    max: 10000000
+    decimals: 2
+
+  - name: Entry Type
+    type: choice
+    values: [Debit, Credit]
+    weights: [50, 50]
+
+  - name: Debit
+    type: conditional_amount
+    amount_column: Amount
+    condition_column: Entry Type
+    equals: Debit
+
+  - name: Credit
+    type: conditional_amount
+    amount_column: Amount
+    condition_column: Entry Type
+    equals: Credit
+
+  - name: Location ID
+    type: pattern
+    pattern: LOC-####
+
+  - name: Fund Name
+    type: name_pool
+    pool: company
+    pool_size: 25000

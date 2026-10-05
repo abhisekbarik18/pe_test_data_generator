@@ -1,0 +1,155 @@
+module: investors
+
+# NOTE on `unique: true`:
+#   - IDs (sequence_id/uuid) are always unique by construction.
+#   - name/contact/code fields marked unique get a guaranteed-unique value
+#     (names get a short unique suffix; codes/numbers are drawn from a
+#     collision-free combinatorial space -- no duplicate retries needed).
+#   - Low-cardinality categorical fields (type, status, country, currency,
+#     risk profile, etc.) are NOT marked unique: with only a handful of
+#     possible values they mathematically cannot be unique across 1M rows.
+#     They remain realistically repeating/weighted instead.
+
+columns:
+  - name: investor_id
+    type: sequence_id
+    prefix: INV
+    width: 7
+    start: 1
+
+  - name: investor_name
+    type: name_pool
+    pool: company
+    pool_size: 25000
+    unique: true
+
+  - name: investor_type
+    type: choice
+    values: [Pension Fund, Endowment, Sovereign Wealth Fund, Fund of Funds, Family Office, Insurance Company, Foundation, High Net Worth Individual]
+    weights: [15, 10, 8, 12, 20, 10, 8, 17]
+
+  - name: entity_type
+    type: choice
+    values: [Institutional, Individual]
+    weights: [85, 15]
+
+  - name: contact_person
+    type: name_pool
+    pool: person
+    pool_size: 25000
+    unique: true
+
+  - name: email
+    type: email_from
+    source_column: contact_person
+    unique: true
+
+  - name: phone
+    type: phone
+    pattern: "+1-###-###-####"
+    unique: true
+
+  - name: address_line1
+    type: name_pool
+    pool: street_address
+    pool_size: 15000
+    unique: true
+
+  - name: city
+    type: name_pool
+    pool: city
+    pool_size: 8000
+
+  - name: state
+    type: name_pool
+    pool: state
+    pool_size: 60
+
+  - name: country
+    type: name_pool
+    pool: country
+    pool_size: 195
+
+  - name: zip_code
+    type: pattern
+    pattern: "#####-####"
+    unique: true
+
+  - name: tax_id
+    type: pattern
+    pattern: "##-#######"
+    unique: true
+
+  - name: aum_usd_millions
+    type: float_range
+    min: 5
+    max: 50000
+    decimals: 2
+    unique: true
+
+  - name: commitment_capacity_usd_millions
+    type: float_range
+    min: 1
+    max: 5000
+    decimals: 4
+    unique: true
+
+  - name: risk_profile
+    type: choice
+    values: [Conservative, Moderate, Aggressive]
+    weights: [30, 45, 25]
+
+  - name: onboarding_date
+    type: date_range
+    start: "2010-01-01"
+    end: "2026-10-05"
+
+  - name: kyc_status
+    type: choice
+    values: [Verified, Pending, Rejected, Expired]
+    weights: [75, 12, 5, 8]
+
+  - name: accreditation_status
+    type: choice
+    values: [Accredited, Non-Accredited, Qualified Purchaser]
+    weights: [55, 10, 35]
+
+  - name: relationship_manager
+    type: name_pool
+    pool: person
+    pool_size: 300
+
+  - name: currency
+    type: choice
+    values: [USD, EUR, GBP, JPY, CHF, SGD]
+    weights: [55, 20, 10, 5, 5, 5]
+
+  - name: bank_name
+    type: name_pool
+    pool: bank_name
+    pool_size: 2000
+
+  - name: account_number
+    type: pattern
+    pattern: "##########"
+    unique: true
+
+  - name: swift_code
+    type: pattern
+    pattern: "@@@@@@##"
+    unique: true
+
+  - name: status
+    type: choice
+    values: [Active, Inactive, Suspended]
+    weights: [85, 10, 5]
+
+  - name: created_date
+    type: date_range
+    start: "2010-01-01"
+    end: "2026-10-05"
+
+  - name: updated_date
+    type: date_range
+    start: "2024-01-01"
+    end: "2026-10-05"

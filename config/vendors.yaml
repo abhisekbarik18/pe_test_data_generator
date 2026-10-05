@@ -1,0 +1,119 @@
+module: vendors
+
+columns:
+  - name: vendor_id
+    type: sequence_id
+    prefix: VEN
+    width: 7
+    start: 1
+
+  - name: vendor_name
+    type: name_pool
+    pool: company
+    pool_size: 25000
+    unique: true
+
+  - name: vendor_type
+    type: choice
+    values: [Legal Services, Fund Administration, Audit & Tax, Placement Agent, IT Services, Compliance Consulting, Custodian Bank, Prime Broker, Valuation Services]
+    weights: [15, 18, 15, 8, 12, 10, 10, 7, 5]
+
+  - name: contact_person
+    type: name_pool
+    pool: person
+    pool_size: 25000
+    unique: true
+
+  - name: email
+    type: email_from
+    source_column: contact_person
+    unique: true
+
+  - name: phone
+    type: phone
+    pattern: "+1-###-###-####"
+    unique: true
+
+  - name: address_line1
+    type: name_pool
+    pool: street_address
+    pool_size: 15000
+    unique: true
+
+  - name: city
+    type: name_pool
+    pool: city
+    pool_size: 8000
+
+  - name: state
+    type: name_pool
+    pool: state
+    pool_size: 60
+
+  - name: country
+    type: name_pool
+    pool: country
+    pool_size: 195
+
+  - name: zip_code
+    type: pattern
+    pattern: "#####-####"
+    unique: true
+
+  - name: registration_number
+    type: pattern
+    pattern: "REG-########"
+    unique: true
+
+  - name: contract_start_date
+    type: date_range
+    start: "2012-01-01"
+    end: "2025-01-01"
+
+  - name: contract_end_date
+    type: date_range
+    start: "2025-01-02"
+    end: "2029-12-31"
+
+  - name: payment_terms
+    type: choice
+    values: [Net 30, Net 45, Net 60, Due on Receipt]
+    weights: [50, 25, 15, 10]
+
+  - name: service_category
+    type: choice
+    values: [Professional Services, Technology, Financial Services, Advisory, Operations]
+    weights: [30, 20, 25, 15, 10]
+
+  - name: status
+    type: choice
+    values: [Active, Inactive, Terminated, Under Review]
+    weights: [75, 10, 8, 7]
+
+  - name: performance_rating
+    type: int_range
+    min: 1
+    max: 5
+
+  - name: currency
+    type: choice
+    values: [USD, EUR, GBP, SGD]
+    weights: [60, 20, 12, 8]
+
+  - name: annual_spend_usd
+    type: float_range
+    min: 1000
+    max: 2000000
+    decimals: 2
+    unique: true
+
+  - name: is_preferred_vendor
+    type: boolean
+    true_weight: 0.3
+    true_label: "Yes"
+    false_label: "No"
+
+  - name: created_date
+    type: date_range
+    start: "2012-01-01"
+    end: "2026-10-05"

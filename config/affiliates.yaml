@@ -1,0 +1,98 @@
+module: affiliates
+
+columns:
+  - name: affiliate_id
+    type: sequence_id
+    prefix: AFF
+    width: 7
+    start: 1
+
+  - name: affiliate_name
+    type: name_pool
+    pool: company
+    pool_size: 25000
+    unique: true
+
+  - name: affiliate_type
+    type: choice
+    values: [Subsidiary, Related Fund, GP Entity, Co-Investment Vehicle, Management Company, Holding Company]
+    weights: [20, 25, 15, 15, 15, 10]
+
+  - name: parent_entity_name
+    type: name_pool
+    pool: company
+    pool_size: 5000
+
+  - name: relationship_type
+    type: choice
+    values: [Direct, Indirect]
+    weights: [70, 30]
+
+  - name: ownership_percentage
+    type: float_range
+    min: 0.1
+    max: 100
+    decimals: 6
+    unique: true
+
+  - name: jurisdiction
+    type: name_pool
+    pool: country
+    pool_size: 195
+
+  - name: registration_number
+    type: pattern
+    pattern: "AFR-########"
+    unique: true
+
+  - name: incorporation_date
+    type: date_range
+    start: "2005-01-01"
+    end: "2026-10-05"
+
+  - name: status
+    type: choice
+    values: [Active, Dormant, Dissolved, Pending Registration]
+    weights: [75, 12, 5, 8]
+
+  - name: contact_name
+    type: name_pool
+    pool: person
+    pool_size: 15000
+    unique: true
+
+  - name: email
+    type: email_from
+    source_column: contact_name
+    unique: true
+
+  - name: phone
+    type: phone
+    pattern: "+1-###-###-####"
+    unique: true
+
+  - name: address_line1
+    type: name_pool
+    pool: street_address
+    pool_size: 15000
+    unique: true
+
+  - name: country
+    type: name_pool
+    pool: country
+    pool_size: 195
+
+  - name: currency
+    type: choice
+    values: [USD, EUR, GBP, JPY, SGD]
+    weights: [50, 20, 12, 8, 10]
+
+  - name: created_date
+    type: date_range
+    start: "2005-01-01"
+    end: "2026-10-05"
+
+  - name: updated_date
+    type: date_range
+    start: "2024-01-01"
+    end: "2026-10-05"

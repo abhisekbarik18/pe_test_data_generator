@@ -1,0 +1,12 @@
+profiles:
+  downstream_import:
+    investor_id: InvestorRef
+    investor_name: LegalEntityName
+    email: ContactEmail
+    aum_usd_millions: AUM_USD_MM
+  legacy_import:
+    investor_id: investor_reference
+    investor_name: legal_name
+    email: email_address
+    aum_usd_millions: assets_usd_mm
+  Investors: {}
