@@ -14,8 +14,10 @@ columns:
     start: 1
 
   - name: Batch Number
-    type: pattern
-    pattern: BATCH-######
+    type: sequence_id
+    prefix: BATCH-
+    width: 10
+    start: 1
 
   - name: Vendor
     type: name_pool
@@ -52,22 +54,17 @@ columns:
     max: 10000000
     decimals: 2
 
-  - name: Entry Type
-    type: choice
-    values: [Debit, Credit]
-    weights: [50, 50]
-
   - name: Debit
-    type: conditional_amount
-    amount_column: Amount
-    condition_column: Entry Type
-    equals: Debit
+    type: float_range
+    min: 0
+    max: 10000000
+    decimals: 2
 
   - name: Credit
-    type: conditional_amount
-    amount_column: Amount
-    condition_column: Entry Type
-    equals: Credit
+    type: float_range
+    min: 0
+    max: 10000000
+    decimals: 2
 
   - name: Location ID
     type: pattern

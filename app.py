@@ -10,9 +10,11 @@ import yaml
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+from datetime import date
 
 from src import generators as g
 from src.engine import generate_dataframe
+from src.pe_generators import dataframe_bytes, export_soi_excel, export_soi_pdf, generate_linked_datasets
 from src.mappings import (
     apply_alias_mapping,
     apply_mapping,
@@ -94,7 +96,7 @@ module = st.sidebar.selectbox(
     index=0,
     format_func=lambda name: name.replace("_", " ").title(),
 )
-section = st.sidebar.radio("Section", ["Generate data", "Column mappings"], key="app_section")
+section = st.sidebar.radio("Section", ["Generate data", "Column mappings", "Linked PE data"], key="app_section")
 
 try:
     profiles = load_mapping_profiles(module, CONFIG_DIR)
@@ -125,6 +127,112 @@ with st.sidebar.expander("➕ Add a new module"):
             st.rerun()
 
 st.sidebar.markdown("---")
+
+if section == "Linked PE data" or (module == "general_ledger" and section == "Generate data"):
+    st.title("Linked PE datasets")
+    st.caption("Generate one shared investment transaction model and reconcile SOI, RollForward, and GL outputs.")
+
+    config_cols = st.columns(4)
+    with config_cols[0]:
+        soi_records = st.number_input("SOI record count", min_value=1, max_value=1_000_000, value=1000, step=100)
+        number_of_funds = st.number_input("Number of funds", min_value=1, max_value=1000, value=5, step=1)
+    with config_cols[1]:
+        reporting_date = st.date_input("Reporting date", value=date.today())
+        number_of_investments = st.number_input("Number of investments", min_value=1, max_value=1_000_000, value=500, step=100)
+    with config_cols[2]:
+        number_of_periods = st.number_input("Number of reporting periods", min_value=1, max_value=20, value=4, step=1)
+        base_currency = st.selectbox("Base currency", ["USD", "EUR", "GBP", "JPY", "CHF", "SGD"])
+    with config_cols[3]:
+        soi_output_format = st.selectbox("SOI Output Format", ["Excel", "PDF", "Both"])
+        linked_output_format = st.selectbox("Data output format", ["csv", "parquet", "json", "xlsx"])
+        linked_seed = st.number_input("Random seed", min_value=0, max_value=2**31 - 1, value=42, step=1, key="linked_pe_seed")
+
+    generate_linked = st.button("Generate linked datasets", type="primary", use_container_width=True)
+    if generate_linked:
+        started = time.perf_counter()
+        try:
+            with st.spinner(f"Generating and reconciling {soi_records:,} SOI records..."):
+                linked_data = generate_linked_datasets(
+                    record_count=int(soi_records),
+                    fund_count=int(number_of_funds),
+                    investment_count=int(number_of_investments),
+                    period_count=int(number_of_periods),
+                    reporting_date=reporting_date,
+                    seed=int(linked_seed),
+                    base_currency=base_currency,
+                    config_dir=CONFIG_DIR,
+                )
+                failed_checks = linked_data["validation"].loc[~linked_data["validation"]["Status"]]
+                if not failed_checks.empty:
+                    raise ValueError("Reconciliation failed: " + "; ".join(failed_checks["Validation"].tolist()))
+                soi_exports = {}
+                if soi_output_format in ("Excel", "Both"):
+                    soi_exports["xlsx"] = export_soi_excel(linked_data)
+                if soi_output_format in ("PDF", "Both"):
+                    soi_exports["pdf"] = export_soi_pdf(linked_data)
+                data_exports = {
+                    "rollforward": dataframe_bytes(linked_data["rollforward"], linked_output_format, "RollForward"),
+                    "gl": dataframe_bytes(linked_data["gl"], linked_output_format, "General Ledger"),
+                }
+            st.session_state.linked_pe_data = linked_data
+            st.session_state.linked_pe_soi_exports = soi_exports
+            st.session_state.linked_pe_data_exports = data_exports
+            st.session_state.linked_pe_output_format = linked_output_format
+            elapsed = time.perf_counter() - started
+            logger.info(
+                "Generated linked PE data: SOI=%d, RollForward=%d, GL=%d in %.2fs",
+                len(linked_data["soi"]), len(linked_data["rollforward"]), len(linked_data["gl"]), elapsed,
+            )
+            st.success(f"Generated and validated SOI, RollForward, and GL in {elapsed:.2f}s.")
+        except (ValueError, ImportError) as exc:
+            st.error(f"Linked data generation failed: {exc}")
+        except Exception as exc:
+            logger.exception("Unexpected linked PE generation error")
+            st.error(f"Unexpected linked data error: {exc}")
+
+    linked_data = st.session_state.get("linked_pe_data")
+    if linked_data is not None:
+        st.subheader("Reconciliation")
+        st.dataframe(linked_data["validation"], hide_index=True, use_container_width=True)
+        st.subheader("SOI Preview")
+        st.dataframe(linked_data["soi"].head(25), hide_index=True, use_container_width=True)
+        st.subheader("Investment RollForward Preview")
+        st.dataframe(linked_data["rollforward"].head(25), hide_index=True, use_container_width=True)
+        st.subheader("General Ledger Preview")
+        st.dataframe(linked_data["gl"].head(25), hide_index=True, use_container_width=True)
+        st.subheader("Downloads")
+        download_cols = st.columns(4)
+        soi_exports = st.session_state.get("linked_pe_soi_exports", {})
+        if "xlsx" in soi_exports:
+            download_cols[0].download_button(
+                "Download SOI Excel", soi_exports["xlsx"],
+                file_name=f"schedule_of_investments_{linked_data['reporting_date']}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        if "pdf" in soi_exports:
+            download_cols[1].download_button(
+                "Download SOI PDF", soi_exports["pdf"],
+                file_name=f"schedule_of_investments_{linked_data['reporting_date']}.pdf",
+                mime="application/pdf", use_container_width=True,
+            )
+        fmt = st.session_state.get("linked_pe_output_format", "csv")
+        mime_by_format = {
+            "csv": "text/csv", "parquet": "application/octet-stream",
+            "json": "application/json",
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }
+        exports = st.session_state.get("linked_pe_data_exports", {})
+        download_cols[2].download_button(
+            "Download RollForward", exports.get("rollforward", b""),
+            file_name=f"investment_rollforward.{fmt}", mime=mime_by_format[fmt], use_container_width=True,
+        )
+        download_cols[3].download_button(
+            "Download General Ledger", exports.get("gl", b""),
+            file_name=f"general_ledger.{fmt}", mime=mime_by_format[fmt], use_container_width=True,
+        )
+    st.stop()
+
 # ---------------------------------------------------------------------------
 # Mapping profile editor
 # ---------------------------------------------------------------------------

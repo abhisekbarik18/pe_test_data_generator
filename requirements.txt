@@ -5,3 +5,4 @@ Faker>=20.0
 PyYAML>=6.0
 pyarrow>=14.0
 openpyxl>=3.1
+reportlab>=4.0

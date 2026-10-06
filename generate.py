@@ -12,11 +12,13 @@ import argparse
 import re
 import sys
 import time
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from src.engine import load_schema, generate_dataframe, write_output
 from src.mappings import apply_alias_mapping, apply_mapping, get_mapping_profile, validate_mapping
+from src.pe_generators import generate_linked_datasets
 
 CONFIG_DIR = Path(__file__).parent / "config"
 
@@ -69,7 +71,20 @@ def main():
             profile_specs.append((profile, mapping, profile_path))
 
     total_start = time.perf_counter()
-    df, gen_time = generate_dataframe(schema, args.rows, seed=args.seed)
+    if args.module == "general_ledger":
+        linked = generate_linked_datasets(
+            record_count=args.rows,
+            fund_count=min(5, args.rows),
+            investment_count=min(100, args.rows),
+            period_count=1,
+            reporting_date=date.today(),
+            seed=args.seed,
+            config_dir=CONFIG_DIR,
+        )
+        df = linked["gl"]
+        gen_time = time.perf_counter() - total_start
+    else:
+        df, gen_time = generate_dataframe(schema, args.rows, seed=args.seed)
     write_time = 0.0
     output_paths = []
 
@@ -98,7 +113,7 @@ def main():
         sys.exit(0 if all_ok else 1)
     total_seconds = time.perf_counter() - total_start
     print("\nSummary:")
-    print(f"  rows: {args.rows}")
+    print(f"  rows: {len(df)}")
     print(f"  columns: {len(df.columns)}")
     print(f"  generation_seconds: {gen_time:.2f}")
     print(f"  write_seconds: {write_time:.2f}")

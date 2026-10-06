@@ -1,9 +1,9 @@
 # PE Test Data Generator
 
 Synthetic test data generator for a Private Equity domain data model.
-Ships with three ready-made modules — **investors**, **vendors**,
-**affiliates** — and is built so more modules (**commitments**,
-**investments**, ...) can be added as plain YAML files, no code changes.
+Ships with investor, vendor, affiliate, commitment, and general-ledger
+modules, plus a linked PE reporting workflow for SOI, investment rollforward,
+and balanced GL output.
 
 ## Highlights
 
@@ -22,6 +22,8 @@ Ships with three ready-made modules — **investors**, **vendors**,
   duplicate-and-retry loops for uniqueness.
 - **Two front ends**: a Streamlit web app for interactive use, and a CLI
   for scripted/CI use.
+- **Linked PE reporting**: generate SOI, period RollForward, and GL from one
+  seeded transaction model, with cost/fair-value and debit/credit checks.
 
 ## Quick start
 
@@ -35,7 +37,23 @@ streamlit run app.py
 python generate.py --module investors --rows 1000000 --output investors.csv
 python generate.py --module vendors --rows 50000 --output vendors.parquet
 python generate.py --module affiliates --rows 1000000 --output affiliates.csv --check-unique
+python generate.py --module general_ledger --rows 10000 --output general_ledger.csv
 ```
+
+## Linked SOI / RollForward / GL
+
+In Streamlit, choose **Linked PE data** in the sidebar to set the SOI record
+count, reporting date, funds, investments, reporting periods, base currency,
+seed, and SOI output format (Excel, PDF, or Both). The selected data format
+is used for the RollForward and GL downloads. Selecting the existing
+**General Ledger** module's Generate data section opens this same linked
+workflow; its output uses the required 14-column GL schema.
+
+All three datasets are derived from the same source transactions. The SOI
+Excel workbook includes detail, fund summary, and validation sheets. The
+PDF uses a paginated investment detail with fund subtotals and a portfolio
+total. Reconciliation results are shown in the app before downloads are
+prepared.
 
 ## How uniqueness is guaranteed (no retries, no slowdowns)
 
