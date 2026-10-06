@@ -55,6 +55,42 @@ PDF uses a paginated investment detail with fund subtotals and a portfolio
 total. Reconciliation results are shown in the app before downloads are
 prepared.
 
+SOI layouts are configured in `config/soi_profiles.yaml`: `PUBLIC_EQUITY`,
+`FIXED_INCOME`, `PRIVATE_EQUITY`, `PRIVATE_CREDIT`, and `ALTERNATIVES`. The
+shared model includes master, investment, valuation, reporting-period,
+transaction, and accounting-event tables. Profile selection changes both
+the SOI projection and the event mix, without rebuilding separate SOI data
+for Excel and PDF.
+
+Python callers can use the public utilities in `src/financial_files.py`:
+
+```python
+from datetime import date
+from pathlib import Path
+
+from src.pe_generators import generate_linked_datasets
+from src.financial_files import generate_soi, reconcile_soi_rollforward_gl
+
+model = generate_linked_datasets(
+  record_count=1000,
+  fund_count=5,
+  investment_count=500,
+  period_count=4,
+  reporting_date=date(2026, 10, 6),
+  seed=42,
+  profile="PRIVATE_CREDIT",
+  config_dir=Path("config"),
+)
+reports = generate_soi(model, "PRIVATE_CREDIT", "Both", {"seed": 42})
+checks = reconcile_soi_rollforward_gl(reports)
+```
+
+The `export_*` functions return bytes by default for Streamlit downloads;
+pass `output_path` to write report files directly. GL and RollForward CSV,
+JSON, Parquet, and Excel path exports are written in chunks where supported.
+The linked Streamlit workflow currently accepts up to 1,000,000 SOI rows;
+multi-million, multi-period memory and throughput have not been benchmarked.
+
 ## How uniqueness is guaranteed (no retries, no slowdowns)
 
 A naive "generate randomly, dedupe, retry on collision" approach gets

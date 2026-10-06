@@ -1,0 +1,122 @@
+profiles:
+  PUBLIC_EQUITY:
+    title: Public Equity Schedule of Investments
+    hierarchy: [Country, Industry, Security Name]
+    cost_fields: [Cost]
+    fair_value_fields: [Fair Value]
+    currency_fields: []
+    percentage_fields: ['% Net Assets']
+    date_fields: []
+    footnote_fields: [Notes/Footnotes]
+    fields:
+      Fund Name: Fund Name
+      Reporting Date: Reporting Date
+      Country: Country
+      Industry: Industry
+      Security Name: Security Name
+      Security Class: Security Class
+      Shares: Shares/Units
+      Fair Value: Fair Value
+      '% Net Assets': '% Net Assets'
+      Cost: Cost
+      Notes/Footnotes: Notes/Footnotes
+  FIXED_INCOME:
+    title: Fixed Income Schedule of Investments
+    hierarchy: [Security Type, Position Description, Identifier]
+    cost_fields: [Amortized Cost]
+    fair_value_fields: [Fair Value]
+    currency_fields: [Par Amount]
+    percentage_fields: ['Par %', '% Net Assets', Yield/Coupon]
+    date_fields: [Maturity/Reset Date, Final Maturity]
+    footnote_fields: [Footnotes]
+    fields:
+      Fund Name: Fund Name
+      Reporting Date: Reporting Date
+      Security Type: Security Type
+      Position Description: Position Description
+      Identifier: Identifier
+      Par Amount: Par Amount
+      Par %: Par %
+      Maturity/Reset Date: Maturity/Reset Date
+      Final Maturity: Final Maturity
+      Yield/Coupon: Interest Rate
+      Amortized Cost: Amortized Cost
+      Fair Value: Fair Value
+      Rating: Rating
+      Geography: Geography
+      '% Net Assets': '% Net Assets'
+      Footnotes: Footnotes
+  PRIVATE_EQUITY:
+    title: Private Equity Schedule of Investments
+    hierarchy: [Investment/Portfolio Company, Security Type, Investment ID]
+    cost_fields: [Cost]
+    fair_value_fields: [Fair Value]
+    currency_fields: []
+    percentage_fields: ['% Net Assets']
+    date_fields: [Acquisition Date]
+    footnote_fields: [Footnote Indicators]
+    fields:
+      Fund Name: Fund Name
+      Reporting Date: Reporting Date
+      Investment/Portfolio Company: Deal Name
+      Investment ID: Investment ID
+      Security Type: Security Type
+      Shares/Units or N/A: Shares/Units or N/A
+      Acquisition Date: Acquisition Date
+      Cost: Cost
+      Fair Value: Fair Value
+      '% Net Assets': '% Net Assets'
+      Valuation Method: Valuation Method
+      Fair Value Hierarchy: Fair Value Hierarchy
+      Investment Status: Investment Status
+      Footnote Indicators: Footnote Indicators
+  PRIVATE_CREDIT:
+    title: Private Credit Schedule of Investments
+    hierarchy: [Investment Name, Reference Rate, Investment ID]
+    cost_fields: [Cost/Principal]
+    fair_value_fields: [Fair Value]
+    currency_fields: []
+    percentage_fields: ['% Net Assets', Interest Rate]
+    date_fields: [First Acquisition Date, Maturity Date]
+    footnote_fields: [Footnotes]
+    fields:
+      Fund Name: Fund Name
+      Reporting Date: Reporting Date
+      Investment Name: Deal Name
+      Investment ID: Investment ID
+      Interest Rate: Interest Rate
+      Reference Rate: Reference Rate
+      Spread: Spread
+      Shares/Units: Shares/Units
+      First Acquisition Date: Acquisition Date
+      Maturity Date: Maturity Date
+      Cost/Principal: Cost/Principal
+      Fair Value: Fair Value
+      '% Net Assets': '% Net Assets'
+      PIK Indicator: PIK Indicator
+      Commitment/Unfunded Status: Commitment/Unfunded Status
+      Valuation Method: Valuation Method
+      Footnotes: Footnotes
+  ALTERNATIVES:
+    title: Alternatives Schedule of Investments
+    hierarchy: [Asset Class, Strategy, Investment Name]
+    cost_fields: [Cost]
+    fair_value_fields: [Fair Value]
+    currency_fields: []
+    percentage_fields: ['% Net Assets']
+    date_fields: [Acquisition Date]
+    footnote_fields: [NAV/Practical Expedient]
+    fields:
+      Fund Name: Fund Name
+      Reporting Date: Reporting Date
+      Asset Class: Asset Class
+      Strategy: Strategy
+      Investment Name: Deal Name
+      Investment Type: Investment Type
+      Security Type: Security Type
+      Cost: Cost
+      Fair Value: Fair Value
+      '% Net Assets': '% Net Assets'
+      NAV/Practical Expedient: NAV/Practical Expedient
+      Fair Value Hierarchy: Fair Value Hierarchy
+      Footnotes: Footnotes

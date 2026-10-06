@@ -14,7 +14,14 @@ from datetime import date
 
 from src import generators as g
 from src.engine import generate_dataframe
-from src.pe_generators import dataframe_bytes, export_soi_excel, export_soi_pdf, generate_linked_datasets
+from src.pe_generators import dataframe_bytes, generate_linked_datasets
+from src.financial_files import (
+    generate_gl,
+    generate_rollforward,
+    generate_soi,
+    load_soi_profiles,
+    reconcile_soi_rollforward_gl,
+)
 from src.mappings import (
     apply_alias_mapping,
     apply_mapping,
@@ -43,6 +50,7 @@ if not any(isinstance(handler, logging.FileHandler) and getattr(handler, "baseFi
 
 CONFIG_DIR = Path(__file__).parent / "config"
 MODULES = ["investors", "vendors", "affiliates", "general_ledger", "commitments"]
+SOI_PROFILES = load_soi_profiles(CONFIG_DIR)
 
 st.set_page_config(page_title="PE Test Data Generator", layout="wide", page_icon="🧪")
 
@@ -135,15 +143,24 @@ if section == "Linked PE data" or (module == "general_ledger" and section == "Ge
     config_cols = st.columns(4)
     with config_cols[0]:
         soi_records = st.number_input("SOI record count", min_value=1, max_value=1_000_000, value=1000, step=100)
-        number_of_funds = st.number_input("Number of funds", min_value=1, max_value=1000, value=5, step=1)
     with config_cols[1]:
+        number_of_investments = st.number_input(
+            "Number of investments", min_value=1, max_value=int(soi_records),
+            value=min(500, int(soi_records)), step=100,
+        )
         reporting_date = st.date_input("Reporting date", value=date.today())
-        number_of_investments = st.number_input("Number of investments", min_value=1, max_value=1_000_000, value=500, step=100)
+    with config_cols[0]:
+        number_of_funds = st.number_input(
+            "Number of funds", min_value=1, max_value=int(number_of_investments),
+            value=min(5, int(number_of_investments)), step=1,
+        )
     with config_cols[2]:
         number_of_periods = st.number_input("Number of reporting periods", min_value=1, max_value=20, value=4, step=1)
         base_currency = st.selectbox("Base currency", ["USD", "EUR", "GBP", "JPY", "CHF", "SGD"])
     with config_cols[3]:
+        soi_profile = st.selectbox("SOI Template Profile", list(SOI_PROFILES))
         soi_output_format = st.selectbox("SOI Output Format", ["Excel", "PDF", "Both"])
+        display_units = st.selectbox("SOI display units", ["Units", "Thousands", "Millions"])
         linked_output_format = st.selectbox("Data output format", ["csv", "parquet", "json", "xlsx"])
         linked_seed = st.number_input("Random seed", min_value=0, max_value=2**31 - 1, value=42, step=1, key="linked_pe_seed")
 
@@ -161,19 +178,26 @@ if section == "Linked PE data" or (module == "general_ledger" and section == "Ge
                     seed=int(linked_seed),
                     base_currency=base_currency,
                     config_dir=CONFIG_DIR,
+                    profile=soi_profile,
                 )
-                failed_checks = linked_data["validation"].loc[~linked_data["validation"]["Status"]]
+                display_scale = {"Units": 1, "Thousands": 1_000, "Millions": 1_000_000}[display_units]
+                linked_data = generate_soi(
+                    linked_data,
+                    profile=soi_profile,
+                    output_format=soi_output_format,
+                    configuration={"seed": int(linked_seed), "config_dir": CONFIG_DIR, "display_scale": display_scale},
+                )
+                reconciliation = reconcile_soi_rollforward_gl(linked_data)
+                failed_checks = reconciliation.loc[reconciliation["Status"] != "PASS"]
                 if not failed_checks.empty:
-                    raise ValueError("Reconciliation failed: " + "; ".join(failed_checks["Validation"].tolist()))
-                soi_exports = {}
-                if soi_output_format in ("Excel", "Both"):
-                    soi_exports["xlsx"] = export_soi_excel(linked_data)
-                if soi_output_format in ("PDF", "Both"):
-                    soi_exports["pdf"] = export_soi_pdf(linked_data)
+                    failed_names = failed_checks["Check Name"].drop_duplicates().tolist()
+                    raise ValueError("Reconciliation failed: " + "; ".join(failed_names))
+                soi_exports = {fmt: linked_data[key] for fmt, key in [("xlsx", "excel"), ("pdf", "pdf")] if linked_data[key] is not None}
                 data_exports = {
-                    "rollforward": dataframe_bytes(linked_data["rollforward"], linked_output_format, "RollForward"),
-                    "gl": dataframe_bytes(linked_data["gl"], linked_output_format, "General Ledger"),
+                    "rollforward": dataframe_bytes(generate_rollforward(linked_data), linked_output_format, "RollForward"),
+                    "gl": dataframe_bytes(generate_gl(linked_data), linked_output_format, "General Ledger"),
                 }
+                linked_data["reconciliation"] = reconciliation
             st.session_state.linked_pe_data = linked_data
             st.session_state.linked_pe_soi_exports = soi_exports
             st.session_state.linked_pe_data_exports = data_exports
@@ -193,7 +217,15 @@ if section == "Linked PE data" or (module == "general_ledger" and section == "Ge
     linked_data = st.session_state.get("linked_pe_data")
     if linked_data is not None:
         st.subheader("Reconciliation")
-        st.dataframe(linked_data["validation"], hide_index=True, use_container_width=True)
+        reconciliation = linked_data.get("reconciliation", linked_data["validation"])
+        st.caption(f"{len(reconciliation):,} reconciliation results | {int((reconciliation['Status'] == 'FAIL').sum()):,} failures")
+        st.dataframe(reconciliation.head(1000), hide_index=True, use_container_width=True)
+        if len(reconciliation) > 1000:
+            st.download_button(
+                "Download complete reconciliation results",
+                reconciliation.to_csv(index=False).encode("utf-8"),
+                file_name="pe_reconciliation.csv", mime="text/csv",
+            )
         st.subheader("SOI Preview")
         st.dataframe(linked_data["soi"].head(25), hide_index=True, use_container_width=True)
         st.subheader("Investment RollForward Preview")
@@ -206,14 +238,14 @@ if section == "Linked PE data" or (module == "general_ledger" and section == "Ge
         if "xlsx" in soi_exports:
             download_cols[0].download_button(
                 "Download SOI Excel", soi_exports["xlsx"],
-                file_name=f"schedule_of_investments_{linked_data['reporting_date']}.xlsx",
+                file_name=f"schedule_of_investments_{linked_data['profile'].lower()}_{linked_data['reporting_date']}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True,
             )
         if "pdf" in soi_exports:
             download_cols[1].download_button(
                 "Download SOI PDF", soi_exports["pdf"],
-                file_name=f"schedule_of_investments_{linked_data['reporting_date']}.pdf",
+                file_name=f"schedule_of_investments_{linked_data['profile'].lower()}_{linked_data['reporting_date']}.pdf",
                 mime="application/pdf", use_container_width=True,
             )
         fmt = st.session_state.get("linked_pe_output_format", "csv")
